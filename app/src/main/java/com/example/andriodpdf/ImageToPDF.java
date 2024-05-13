@@ -1,5 +1,6 @@
 package com.example.andriodpdf;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.view.ActionMode;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
@@ -29,7 +30,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.TypedValue;
-import android.view.ActionMode;
+
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -315,7 +316,7 @@ public class ImageToPDF extends AppCompatActivity {
             @Override
             public void onItemClick(View view, ImageDocument obj, int position) {
                 if (mAdapter.getSelectedItemCount() > 0) {
-                  //  enableActionMode(position);
+                    enableActionMode(position);
                 } else {
                     currenSelected = position;
                     //CropImage.activity(mAdapter.getItem(position).getImageDocument())
@@ -325,7 +326,7 @@ public class ImageToPDF extends AppCompatActivity {
 
             @Override
             public void onItemLongClick(View view, ImageDocument obj, int pos) {
-              //  enableActionMode(pos);
+                enableActionMode(pos);
             }
         });
         mAdapter.setDragListener(new AdapterGridBasic.OnStartDragListener() {
@@ -362,7 +363,27 @@ public class ImageToPDF extends AppCompatActivity {
             }
         }
     }
-
+    public  void onActivityResult(int requestCode, int resultCode, Intent result){
+        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (result != null) {
+                if (result.getClipData() != null){
+                    int count = result.getClipData().getItemCount();
+                    for (int i =0; i < count; i++) {
+                        Uri imageUri = result.getClipData().getItemAt(i).getUri();
+                        ImageDocument document = new ImageDocument(imageUri, this);
+                        addToDataStore(document);
+                    }
+                } else if (result.getData() != null){
+                    Uri imageUri = result.getData();
+                    ImageDocument document = new ImageDocument(imageUri, this);
+                    addToDataStore(document);
+                }
+            }
+        }
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+           // CropImage.ActivityResult cropped = CropImage.getActivityResult(result);
+        }
+    }
 
     private void addToDataStore(ImageDocument item) {
         documents.add(item);
@@ -371,6 +392,33 @@ public class ImageToPDF extends AppCompatActivity {
     public static int dpToPx(Context c, int dp) {
         Resources r = c.getResources();
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, r.getDisplayMetrics()));
+    }
+
+    public void performFileSearch() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("image/jpeg");
+        String[] mimetype = {"image/jpeg\", \"image/png"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetype);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        startActivityForResult(intent, READ_REQUEST_CODE);
+    }
+
+    private void InitBottomSheetProgress(){
+        bottomSheetDialog = new Dialog(this);
+        bottomSheetDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        bottomSheetDialog.setContentView(R.layout.progressdialog);
+        bottomSheetDialog.setCancelable(false);
+        bottomSheetDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(bottomSheetDialog.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+
+        progressBar = (CircularProgressBar) bottomSheetDialog.findViewById(R.id.circularProgressBar);
+        progressBarPercentage = (TextView) bottomSheetDialog.findViewById(R.id.progressPercentage);
+
+        bottomSheetDialog.getWindow().setAttributes(lp);
     }
 
     private void  showBottomSheet(int size){
@@ -432,7 +480,23 @@ public class ImageToPDF extends AppCompatActivity {
         }
         mAdapter.notifyDataSetChanged();
     }
+    private void enableActionMode(int position){
+        if (actionMode == null){
+            actionMode = startSupportActionMode(actionModeCallback);
+        }
+        toggleSelection(position);
+    }
+    private void toggleSelection(int position){
+        mAdapter.toggleSelection(position);
+        int count = mAdapter.getSelectedItemCount();
 
+        if (count == 0){
+            actionMode.finish();
+        } else {
+            actionMode.setTitle(String.valueOf(count));
+            actionMode.invalidate();
+        }
+    }
 
 
     private void selectAll(){
@@ -485,29 +549,6 @@ public class ImageToPDF extends AppCompatActivity {
 
 
 
-    public void performFileSearch() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.setType("image/jpeg");
-        String[] mimetype = {"image/jpeg\", \"image/png"};
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetype);
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(intent, READ_REQUEST_CODE);
-    }
-    private void InitBottomSheetProgress(){
-        bottomSheetDialog = new Dialog(this);
-        bottomSheetDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        bottomSheetDialog.setContentView(R.layout.progressdialog);
-        bottomSheetDialog.setCancelable(false);
-        bottomSheetDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
 
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(bottomSheetDialog.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
-        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
 
-        progressBar = (CircularProgressBar) bottomSheetDialog.findViewById(R.id.circularProgressBar);
-        progressBarPercentage = (TextView) bottomSheetDialog.findViewById(R.id.progressPercentage);
-
-        bottomSheetDialog.getWindow().setAttributes(lp);
-    }
 }

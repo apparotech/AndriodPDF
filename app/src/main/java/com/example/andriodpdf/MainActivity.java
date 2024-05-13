@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.view.ActionMode;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.ShareCompat;
@@ -13,6 +14,7 @@ import androidx.core.view.GravityCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.Dialog;
@@ -25,7 +27,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelUuid;
-import android.view.ActionMode;
+
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -49,6 +51,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.itextpdf.text.pdf.PRIndirectReference;
+import com.mikhaellopez.circularprogressbar.BuildConfig;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
 import java.io.File;
@@ -66,7 +69,6 @@ import java.util.IllegalFormatCodePointException;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity  implements NavigationView.OnNavigationItemSelectedListener  {
-  // private ActionMode.Callback actionModeCallbacked = new ActionModeCallback();
     private static final int Merge_Request_CODE = 42;
     private static final int RQS_OPEN_DOCUMENT_TREE_ALL = 43;
     private static final int RQS_OPEN_DOCUMENT_TREE = 24;
@@ -329,7 +331,7 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
 
-                                Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" +BuildConfig.APPLICATION_ID));
+                                Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + BuildConfig.LIBRARY_PACKAGE_NAME));
                                 startActivity(i);
                                 dialog.dismiss();
                             }
@@ -395,7 +397,7 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
                 if (mAdapter.getSelectedItemCount() > 0) {
                     enableActionMode(position);
                 } else {
-                    //showBottomSheetDialog(value);
+                    showBottomSheetDialog(value);
                 }
             }
 
@@ -409,8 +411,9 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
     }
 
     private void enableActionMode(int position) {
-        if (actionMode == null){actionMode = startSupportActionMode(actionModeCallback);
-            System.out.println("raj");
+        if (actionMode == null){
+          actionMode = startSupportActionMode(actionModeCallback);
+
         }
         toggleSelection(position);
     }
@@ -424,7 +427,17 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
             actionMode.invalidate();
         }
     }
+    private void selectAll(){
+        mAdapter.selectAll();
+        int count = mAdapter.getSelectedItemCount();
 
+        if (count ==0){
+            actionMode.finish();
+        } else {
+            actionMode.setTitle(String.valueOf(count));
+            actionMode.invalidate();
+        }
+    }
 
 
 
@@ -545,7 +558,56 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
                 showCustomRenameDialog(currentFile);
             }
         });
-        ((View) view.findViewById(R.id))
+        ((View) view.findViewById(R.id.lyt_delete)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mBottomSheetDialog.dismiss();
+                showCustomRenameDialog(currentFile);
+            }
+        });
+
+        ((View) view.findViewById(R.id.lyt_copyTo)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                startActivityForResult(intent, RQS_OPEN_DOCUMENT_TREE);
+                selectedFile = currentFile;
+            }
+        });
+
+        ((View) view.findViewById(R.id.lyt_ocr)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mBottomSheetDialog.dismiss();
+
+            }
+        });
+        ((View) view .findViewById(R.id.lyt_openFile)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent target = new Intent(Intent.ACTION_VIEW);
+                Uri contentUri = FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".provider", currentFile);
+                target.setDataAndType(contentUri, "application/pdf");
+                target.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                target.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent intent = Intent.createChooser(target , "open File");
+                try{
+                    startActivity(intent);
+                }catch (ActivityNotFoundException e) {
+                    //Snackbar.make(mCoordLayout, "Install PDF reader application.", Snackbar.LENGTH_LONG).show();
+                }
+            }
+        });
+        mBottomSheetDialog = new BottomSheetDialog(this);
+        mBottomSheetDialog.setContentView(view);
+        mBottomSheetDialog.show();
+        mBottomSheetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                mBottomSheetDialog = null;
+            }
+        });
     }
 
     public void showCustomRenameDialog(final File currentFile) {
@@ -587,17 +649,7 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
         mAdapter.notifyDataSetChanged();
 
     }
-    private void selectAll(){
-        mAdapter.selectAll();
-        int count = mAdapter.getSelectedItemCount();
 
-        if (count ==0){
-            actionMode.finish();
-        } else {
-            actionMode.setTitle(String.valueOf(count));
-            actionMode.invalidate();
-        }
-    }
 
 
 
