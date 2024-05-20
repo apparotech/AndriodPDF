@@ -1,11 +1,13 @@
 package com.example.andriodpdf;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import com.canhub.cropper.CropImage;
-import com.canhub.cropper.CropImageActivity;
+
 import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.app.ActivityCompat;
@@ -26,12 +28,14 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.TypedValue;
 
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
@@ -44,10 +48,11 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.example.andriodpdf.BuildConfig;
+
 import com.example.andriodpdf.Adapter.AdapterGridBasic;
 import com.example.andriodpdf.Adapter.ImageDocument;
 import com.example.andriodpdf.Adapter.SpacingItemDecoration;
+import com.example.andriodpdf.Utils.FileComparator;
 import com.example.andriodpdf.Utils.ImageToPDFAsync;
 import com.example.andriodpdf.Utils.ItemTouchHelperClass;
 import com.example.andriodpdf.Utils.RecyclerViewEmptySupport;
@@ -55,18 +60,21 @@ import com.example.andriodpdf.Utils.ViewAnimation;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
-//import com.mikhaellopez.circularprogressbar.BuildConfig;
+
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
 import java.io.File;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class ImageToPDF extends AppCompatActivity {
 
     private RecyclerViewEmptySupport recyclerView;
     private AdapterGridBasic mAdapter;
+    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 2;
     private static final int READ_REQUEST_CODE = 42;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_COLLAGE = 265;
@@ -82,7 +90,7 @@ public class ImageToPDF extends AppCompatActivity {
     private TextInputLayout textInputLayout;
     private EditText passwordText;
     AppCompatCheckBox securePDF;
-  //  private ActionModeCallback actionModeCallback;
+
   private ActionModeCallback actionModeCallback;
     private ActionMode actionMode;
     private  boolean rotate = false;
@@ -363,27 +371,35 @@ public class ImageToPDF extends AppCompatActivity {
             }
         }
     }
-    public  void onActivityResult(int requestCode, int resultCode, Intent result){
-        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            if (result != null) {
-                if (result.getClipData() != null){
-                    int count = result.getClipData().getItemCount();
-                    for (int i =0; i < count; i++) {
-                        Uri imageUri = result.getClipData().getItemAt(i).getUri();
-                        ImageDocument document = new ImageDocument(imageUri, this);
-                        addToDataStore(document);
-                    }
-                } else if (result.getData() != null){
-                    Uri imageUri = result.getData();
-                    ImageDocument document = new ImageDocument(imageUri, this);
-                    addToDataStore(document);
-                }
-            }
-        }
-        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
-           // CropImage.ActivityResult cropped = CropImage.getActivityResult(result);
-        }
-    }
+      public void onActivityResult(int requestCode, int resultCode, Intent result) {
+          super.onActivityResult(requestCode, resultCode, result);
+          if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK){
+              if (result != null){
+                  if (result.getClipData() != null){
+                      int count = result.getClipData().getItemCount();
+                      for (int i = 0; i<count; i++){
+                          Uri imageUri = result.getClipData().getItemAt(i).getUri();
+                          ImageDocument document = new ImageDocument(imageUri, this);
+                          addToDataStore(document);
+                      }
+                  } else if (result.getData() != null) {
+                      Uri imageUri = result.getData();
+                      ImageDocument document = new ImageDocument(imageUri, this);
+                      addToDataStore(document);
+                  }
+              }
+          }
+          if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Activity.RESULT_OK){
+              File file  = new File(mCurrentCameraFile);
+              if (file.exists()){
+                  Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
+              }
+          }
+          if (requestCode == REQUEST_COLLAGE && resultCode == Activity.RESULT_OK){
+              makeResult();
+          }
+      }
+
 
     private void addToDataStore(ImageDocument item) {
         documents.add(item);
@@ -395,13 +411,63 @@ public class ImageToPDF extends AppCompatActivity {
     }
 
     public void performFileSearch() {
+        // Check if Access Media API is supported (Android 14 or later)
+     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+        // requestReadExternalStoragePermission();
+         CheckStoragePermission();
+        // if (ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+             // Use ACTION_OPEN_DOCUMENT for multiple file selection
+             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+             intent.setType("image/jpeg");
+             String[] mimetypes = {"image/jpeg", "image/png"};
+             intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+             mGetContent.launch(intent);
+        // }
+     } else {
+         // Handle older Android versions
+         requestReadExternalStoragePermission();
+         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+             openFilePicker();
+         }
+     }
+    }
+    private void openFilePicker(){
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("image/jpeg");
-        String[] mimetype = {"image/jpeg\", \"image/png"};
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetype);
+        String[] mimetypes = {"image/jpeg", "image/png"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(intent, READ_REQUEST_CODE);
+       startActivityForResult(intent, READ_REQUEST_CODE);
+        //mGetContent.launch(intent);
     }
+    private void requestReadExternalStoragePermission(){
+        if (ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.READ_EXTERNAL_STORAGE)){
+                new AlertDialog.Builder(this)
+                        .setTitle("Storage Permission Needed")
+                        .setMessage("This app needs access to storage to provide its features. Please grant permission.")
+                        .setPositiveButton("Allow",(dialog, which) ->  {
+                            ActivityCompat.requestPermissions(this,
+                                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                                    READ_REQUEST_CODE);
+                        })
+                        .setNegativeButton("Deny",(dialog, which) -> {
+
+                        })
+                        .show();
+            } else {
+                ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        READ_REQUEST_CODE);
+            }
+        }else {
+
+        }
+    }
+
+    //for 14 or newer version
+
+
 
     private void InitBottomSheetProgress(){
         bottomSheetDialog = new Dialog(this);
@@ -448,30 +514,61 @@ public class ImageToPDF extends AppCompatActivity {
     }
 
     private void CheckStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                AlertDialog alertDialog = new AlertDialog.Builder(this).create();
-                alertDialog.setTitle("Storage Permission");
-                alertDialog.setMessage("Storage permission is required in order to " +
-                        "provide PDF merge feature, please enable permission in app settings");
-                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Settings",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
-                                startActivity(i);
-                                dialog.dismiss();
-                            }
-                        });
-                alertDialog.show();
+        // Access Media API (Android 14+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED ) {
+                // Request permission if not granted
+                requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_WRITE_EXTERNAL_STORAGE);
             } else {
-                // No explanation needed; request the permission
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        2);
+                // Permission already granted
+                // Proceed with your logic to save the PDF
+                // ...
+            }
+        } else {
+            // Older Android versions
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+                    // Show an explanation to the user
+                    android.app.AlertDialog alertDialog = new android.app.AlertDialog.Builder(this).create();
+                    alertDialog.setTitle("Storage Permission");
+                    alertDialog.setMessage("Storage permission is required in order to " +
+                            "provide PDF merge feature, please enable permission in app settings");
+                    alertDialog.setButton(android.app.AlertDialog.BUTTON_NEUTRAL, "Settings",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int id) {
+                                    Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" +  BuildConfig.APPLICATION_ID));
+                                    startActivity(i);
+                                    dialog.dismiss();
+                                }
+                            });
+                    alertDialog.show();
+
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            REQUEST_WRITE_EXTERNAL_STORAGE);
+                }
             }
         }
     }
+
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted - Proceed with your PDF saving logic
+                // ...
+            } else {
+                // Permission denied
+                Toast.makeText(this, "Storage permission is required to save the PDF.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
 
     private void deleteItems(){
         List<Integer> selectedItemPositions = mAdapter.getSelectedItems();
@@ -544,9 +641,79 @@ public class ImageToPDF extends AppCompatActivity {
         }
 
     }
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    private MenuItem mainMenuItem;
+    private boolean isChecked = false;
+
+    //>>>>>>>>>>>>MENU
+    public boolean onCreateOptionsMenu(Menu menu){
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.sortmenu,menu);
+        mainMenuItem = menu.findItem(R.id.fileSort);
+        return true;
+    }
+      Comparator<ImageDocument> comparator = null;
 
 
 
+
+    private void sortFiles(Comparator<ImageDocument> comparator){
+        Collections.sort(mAdapter.items, comparator);
+        mAdapter.notifyDataSetChanged();
+    }
+
+   private ActivityResultLauncher<Intent> mGetContent = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK){
+                    Intent data = result.getData();
+                    if (data != null){
+                        handleSelectedFiles(data);
+                    }
+                }
+
+            });
+    private ActivityResultLauncher<Intent> mImageCapture = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    handleCapturedImage();
+                }
+            });
+
+    private ActivityResultLauncher<Intent> mCollage = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    makeResult();
+                }
+            });
+
+
+
+    private void handleSelectedFiles(Intent result) {
+        if (result != null){
+            if (result.getClipData() != null){
+                int count = result.getClipData().getItemCount();
+                for(int i=0; i< count; i++){
+                    Uri imageUri = result.getClipData().getItemAt(i).getUri();
+                    ImageDocument document = new ImageDocument(imageUri, this);
+                    addToDataStore(document);
+                }
+            } else if (result.getData() != null) {
+                Uri imageUri = result.getData();
+                ImageDocument document = new ImageDocument(imageUri, this);
+                addToDataStore(document);
+
+            }
+        }
+
+    }
+    // Handle captured image
+    private void handleCapturedImage(){
+        File file = new File(mCurrentCameraFile);
+        if (file.exists()) {
+            Uri uri  = FileProvider.getUriForFile(this,getPackageName() + ".provider", file);
+            // Do something with the captured image URI
+        }
+    }
 
 
 

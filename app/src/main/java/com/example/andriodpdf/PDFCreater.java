@@ -1,5 +1,6 @@
 package com.example.andriodpdf;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -11,9 +12,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.pdf.PdfDocument;
+import android.media.Image;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,21 +28,30 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.andriodpdf.Adapter.ImageDocument;
 import com.example.andriodpdf.pdfcreater.docpdf;
 import com.google.android.flexbox.FlexDirection;
 import com.google.android.flexbox.FlexWrap;
 import com.google.android.material.snackbar.Snackbar;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.pdf.PdfDocument;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PDFCreater extends AppCompatActivity {
-
+    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 2;
     ArrayList<ArrayList<ImageDocument>> datasets;
+
     LinearLayout mListParentView;
-  //  PdfDocument document;
+
     docpdf document;
     LinearLayout collageTool;
     LinearLayout collage_oneView;
@@ -79,7 +92,7 @@ public class PDFCreater extends AppCompatActivity {
         return true;
     }
 
-    public boolean onOptionsItemSelected(MenuItem item) {
+   public boolean onOptionsItemSelected(MenuItem item) {
            int id = item.getItemId();
            if (id == R.id.savepdf_menu) {
                final Dialog dialog = new Dialog(this);
@@ -104,17 +117,33 @@ public class PDFCreater extends AppCompatActivity {
                ((Button)dialog.findViewById(R.id.bt_save)).setOnClickListener(new View.OnClickListener() {
                    @Override
                    public void onClick(View v) {
-                       if (ContextCompat.checkSelfPermission(PDFCreater.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-                           CheckStoragePermission();
-                       } else {
-                           String fileName = edittext.getText().toString();
-                           if (!fileName.equals("")) {
-                               document.PrintPDF(fileName);
-                               dialog.dismiss();
-                           } else {
-                               Snackbar.make(v, "File name should not be empty", Snackbar.LENGTH_LONG).show();
-                           }
-                       }
+                     if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+                         if (ContextCompat.checkSelfPermission(PDFCreater.this,Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED){
+                             CheckStoragePermission();
+                         } else {
+                            //Toast.makeText(getApplicationContext(), "THIS IS NOT SAVE TRY ANOTHER TIME", Toast.LENGTH_LONG).show();
+                             String fileName = edittext.getText().toString();
+                             if (!fileName.equals("")) {
+                                 document.PrintPDF(fileName);
+                                 dialog.dismiss();
+                             } else {
+                                 Snackbar.make(v, "File name should not be empty", Snackbar.LENGTH_LONG).show();
+                             }
+                         }
+                     } else {
+
+                         if (ContextCompat.checkSelfPermission(PDFCreater.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+                             CheckStoragePermission();
+                         } else {
+                             String fileName = edittext.getText().toString();
+                             if (!fileName.equals("")) {
+                                 document.PrintPDF(fileName);
+                                 dialog.dismiss();
+                             } else {
+                                 Snackbar.make(v, "File name should not be empty", Snackbar.LENGTH_LONG).show();
+                             }
+                         }
+                     }
                    }
                });
              
@@ -124,6 +153,41 @@ public class PDFCreater extends AppCompatActivity {
         return true;
 
     }
+
+
+    /*
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.savepdf_menu:
+                final Dialog dialog = new Dialog(this);
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                final View alertView = getLayoutInflater().inflate(R.layout.collagesave, null);
+                dialog.setContentView(alertView);
+                dialog.setCancelable(true);
+                WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                lp.copyFrom(dialog.getWindow().getAttributes());
+                lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+                lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+                dialog.show();
+                dialog.getWindow().setAttributes(lp);
+                final EditText edittext = (EditText) alertView.findViewById(R.id.editText2);
+
+                ((ImageButton) dialog.findViewById(R.id.bt_close)).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                    }
+                });
+                ((Button) dialog.findViewById(R.id.bt_save)).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (Bu)
+                    }
+                });
+        }
+    }
+
+     */
     public LinearLayout GetPdfParentView(){
         return mListParentView;
     }
@@ -153,6 +217,97 @@ public class PDFCreater extends AppCompatActivity {
                 document.setItemPerColomn(1);
                 document.setFlexDirection(FlexDirection.ROW);
                 document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_twoxoneView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus,(LinearLayout) v);
+                document.setItemsPerPage(2);
+                document.setItemPerRow(1);
+                document.setItemPerColomn(2);
+                document.setFlexDirection(FlexDirection.COLUMN);
+                document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_onextwoView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus,(LinearLayout) v);
+                document.setItemsPerPage(2);
+                document.setItemPerRow(2);
+                document.setItemPerColomn(2);
+                document.setFlexWrap(FlexDirection.ROW);
+                document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_twoxtwoView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus, (LinearLayout) v);
+                document.setItemsPerPage(4);
+                document.setItemPerRow(2);
+                document.setItemPerColomn(2);
+                document.setFlexDirection(FlexDirection.ROW);
+                document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_twoxthreeView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus, (LinearLayout) v);
+                document.setItemsPerPage(6);
+                document.setItemPerRow(3);
+                document.setItemPerColomn(3);
+                document.setFlexDirection(FlexDirection.ROW);
+                document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_threextwoView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus, (LinearLayout) v);
+                document.setItemsPerPage(6);
+                document.setItemPerRow(2);
+                document.setItemPerColomn(3);
+                document.setFlexDirection(FlexDirection.COLUMN);
+                document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_threexthreeView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus, (LinearLayout) v);
+                document.setItemsPerPage(9);
+                document.setItemPerRow(3);
+                document.setItemPerColomn(3);
+                document.setFlexDirection(FlexDirection.ROW);
+                document.setFlexWrap(FlexWrap.WRAP);
+                document.DoLayout();
+            }
+        });
+
+        collage_eightxoneview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFocus(collage_unfocus, (LinearLayout) v);
+                document.setItemsPerPage(8);
+                document.setItemPerRow(5);
+                document.setItemPerColomn(7);
+                document.setFlexDirection(FlexDirection.COLUMN);
+                document.setFlexWrap(FlexWrap.NOWRAP);
                 document.DoLayout();
             }
         });
@@ -205,28 +360,89 @@ public class PDFCreater extends AppCompatActivity {
     }
 
     private void CheckStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                AlertDialog alertDialog = new AlertDialog.Builder(this).create();
-                alertDialog.setTitle("Storage Permission");
-                alertDialog.setMessage("Storage permission is required in order to " +
-                        "provide PDF merge feature, please enable permission in app settings");
-                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Settings",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
-                                startActivity(i);
-                                dialog.dismiss();
-                            }
-                        });
-                alertDialog.show();
+        // Access Media API (Android 14+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED ) {
+                // Request permission if not granted
+                requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_WRITE_EXTERNAL_STORAGE);
             } else {
-                // No explanation needed; request the permission
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        2);
+                // Permission already granted
+                // Proceed with your logic to save the PDF
+                // ...
+
+            }
+        } else {
+            // Older Android versions
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+                    // Show an explanation to the user
+                    android.app.AlertDialog alertDialog = new android.app.AlertDialog.Builder(this).create();
+                    alertDialog.setTitle("Storage Permission");
+                    alertDialog.setMessage("Storage permission is required in order to " +
+                            "provide PDF merge feature, please enable permission in app settings");
+                    alertDialog.setButton(android.app.AlertDialog.BUTTON_NEUTRAL, "Settings",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int id) {
+                                    Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" +  BuildConfig.APPLICATION_ID));
+                                    startActivity(i);
+                                    dialog.dismiss();
+                                }
+                            });
+                    alertDialog.show();
+
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            REQUEST_WRITE_EXTERNAL_STORAGE);
+                }
             }
         }
     }
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted - Proceed with your PDF saving logic
+                // ...
+            } else {
+                // Permission denied
+                Toast.makeText(this, "Storage permission is required to save the PDF.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+    //EditText edittext = (EditText) findViewById(R.id.editText2);
+
+   /* private void savePDF(EditText edittext){
+        try{
+            String fileName = edittext.getText().toString();
+
+            File  documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+            File pdfFile = new File(documentsDir, fileName + ".pdf");
+
+            PdfWriter writer = new PdfWriter(pdfFile);
+            PdfDocument pdfDocument = new PdfDocument(writer);
+            Document document1 = new Document(pdfDocument);
+
+            document1.add(new Paragraph("this is sample PDF document."));
+
+            List<Uri> imageUris = new ArrayList<>();
+             for (Uri imageUri : imageUris){
+
+                 // Scale the image to fit the page width
+
+             }
+
+
+
+
+        }
+    }
+    /
+    */
+
+
 }

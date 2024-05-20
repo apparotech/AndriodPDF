@@ -83,14 +83,14 @@ public class MainRecycleViewAdapter extends RecyclerView.Adapter<RecyclerView.Vi
             String strDate = formatter.format(lastModDate);
             view.brief.setText(strDate);
             view.size.setText(GetSize(obj.length()));
-           /* view.image.setOnClickListener(new View.OnClickListener() {
+               view.image.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     if (mOnItemClickListener != null) {
-                        mOnItemClickListener.onItemClick(view,items.get(position), position);
+                        mOnItemClickListener.onItemClick(view,items.get(holder.getAdapterPosition()), holder.getAdapterPosition());
                     }
                 }
-            });*/
+            });
 
             view.lyt_parent.setOnClickListener(new View.OnClickListener() {
                 @Override

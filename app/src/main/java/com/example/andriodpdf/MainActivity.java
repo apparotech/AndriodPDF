@@ -1,5 +1,8 @@
 package com.example.andriodpdf;
+import android.provider.MediaStore;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
@@ -15,7 +18,7 @@ import androidx.documentfile.provider.DocumentFile;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import android.Manifest;
+
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
@@ -25,9 +28,11 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelUuid;
-
+import android.Manifest;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -51,7 +56,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.itextpdf.text.pdf.PRIndirectReference;
-import com.mikhaellopez.circularprogressbar.BuildConfig;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
 import java.io.File;
@@ -69,6 +73,9 @@ import java.util.IllegalFormatCodePointException;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity  implements NavigationView.OnNavigationItemSelectedListener  {
+    private static final int REQUEST_READ_EXTERNAL_STORAGE = 100;
+
+    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 101;
     private static final int Merge_Request_CODE = 42;
     private static final int RQS_OPEN_DOCUMENT_TREE_ALL = 43;
     private static final int RQS_OPEN_DOCUMENT_TREE = 24;
@@ -320,28 +327,57 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
     }
 
     private void CheckStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                AlertDialog alertDialog = new AlertDialog.Builder(this).create();
-                alertDialog.setTitle("Storage Permission");
-                alertDialog.setMessage("Storage permission is required in order to " +
-                        "provide Image to PDF feature, please enable permission in app settings");
-                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Settings",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-
-                                Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + BuildConfig.LIBRARY_PACKAGE_NAME));
-                                startActivity(i);
-                                dialog.dismiss();
-                            }
-                        });
-                alertDialog.show();
+        // Access Media API (Android 14+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED ) {
+                // Request permission if not granted
+                requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_WRITE_EXTERNAL_STORAGE);
             } else {
-                // No explanation needed; request the permission
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        2);
+                // Permission already granted
+                // Proceed with your logic to save the PDF
+                // ...
+            }
+        } else {
+            // Older Android versions
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+                    // Show an explanation to the user
+                    android.app.AlertDialog alertDialog = new android.app.AlertDialog.Builder(this).create();
+                    alertDialog.setTitle("Storage Permission");
+                    alertDialog.setMessage("Storage permission is required in order to " +
+                            "provide PDF merge feature, please enable permission in app settings");
+                    alertDialog.setButton(android.app.AlertDialog.BUTTON_NEUTRAL, "Settings",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int id) {
+                                    Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" +  BuildConfig.APPLICATION_ID));
+                                    startActivity(i);
+                                    dialog.dismiss();
+                                }
+                            });
+                            alertDialog.show();
+
+                } else {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            REQUEST_WRITE_EXTERNAL_STORAGE);
+                }
+            }
+        }
+    }
+
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted - Proceed with your PDF saving logic
+                // ...
+            } else {
+                // Permission denied
+                Toast.makeText(this, "Storage permission is required to save the PDF.", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -382,8 +418,10 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
                     return -1;
                 } else if (result >0) {
                     return 1;
+                } else {
+                    return 0;
                 }
-                return 0;
+
             }
         });
         for (int i = 0; i<files.length; i++){
@@ -408,6 +446,16 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
             }
         });
         recyclerView.setAdapter(mAdapter);
+    }
+    private void deleteItems() {
+        List<Integer> selectedItemPositions = mAdapter.getSelectedItems();
+        for (int i = selectedItemPositions.size() - 1; i >= 0; i--) {
+            File file = items.get(i);
+            file.delete();
+            mAdapter.removeData(selectedItemPositions.get(i));
+        }
+        mAdapter.notifyDataSetChanged();
+
     }
 
     private void enableActionMode(int position) {
@@ -639,16 +687,7 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
         AlertDialog dialog = builder.create();
         dialog.show();
     }
-    private void deleteItems() {
-        List<Integer> selectedItemPositions = mAdapter.getSelectedItems();
-        for (int i = selectedItemPositions.size() - 1; i >= 0; i--) {
-            File file = items.get(i);
-            file.delete();
-            mAdapter.removeData(selectedItemPositions.get(i));
-        }
-        mAdapter.notifyDataSetChanged();
 
-    }
 
 
 
@@ -774,5 +813,6 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
        AlertDialog dialog = builder.create();
        dialog.show();
    }
+
 
 }

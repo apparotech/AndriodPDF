@@ -11,8 +11,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.andriodpdf"
-        minSdk = 24
-        targetSdk = 33
+        minSdk = 23
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -43,7 +43,8 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
    //text pdf lib---------------------
-    implementation ("com.itextpdf:itextpdf:5.5.13")
+   implementation ("com.itextpdf:itextpdf:5.5.13")
+   // implementation ("com.itextpdf:itext7-core:7.2.2")
     //text pdf lib---------------------
     //---------glide-------
     implementation ("com.github.bumptech.glide:glide:4.16.0")
@@ -56,7 +57,10 @@ dependencies {
     //implementation ("com.github.CanHub:Android-Image-Cropper:4.5.0")
     //----------------crop image--------------
 
-    implementation("com.vanniktech:android-image-cropper:4.3.3")
+    //implementation("com.vanniktech:android-image-cropper:4.5.0")
+   // implementation ("com.theartofdev.edmodo:android-image-cropper:2.7.0")
 //------------------------FlexboxLayout
     implementation ("com.google.android.flexbox:flexbox:3.0.0")
+
+
 }
