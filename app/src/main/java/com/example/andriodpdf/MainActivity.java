@@ -8,6 +8,7 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
+import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.ShareCompat;
@@ -100,15 +101,16 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
     protected void onCreate(Bundle savedInstanceState)   {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        // toolbar = findViewById(R.id.toolbar);
-       //setSupportActionBar(toolbar);
+       // getSupportActionBar().hide();
+         toolbar = findViewById(R.id.toolbar);
+         setSupportActionBar(toolbar);
        //getSupportActionBar().setTitle("Andriod PDF");
         CheckStoragePermission();
 
-        final FloatingActionButton maddCameraFAB = (FloatingActionButton) findViewById(R.id.mainaddCameraFAB);
+        //final FloatingActionButton maddCameraFAB = (FloatingActionButton) findViewById(R.id.mainaddCameraFAB);
         final FloatingActionButton  maddFilesFAB = (FloatingActionButton) findViewById(R.id.mainaddFilesFAB);
         mSharedPreferences = getSharedPreferences("configuration", MODE_PRIVATE);
-        ViewAnimation.initShowOut(maddCameraFAB);
+        //ViewAnimation.initShowOut(maddCameraFAB);
         ViewAnimation.initShowOut(maddFilesFAB);
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -116,10 +118,10 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
             public void onClick(View view) {
                 rotate = ViewAnimation.rotateFab(view, !rotate);
                 if (rotate) {
-                    ViewAnimation.showIn(maddCameraFAB);
+                   // ViewAnimation.showIn(maddCameraFAB);
                     ViewAnimation.showIn(maddFilesFAB);
                 } else {
-                    ViewAnimation.showOut(maddCameraFAB);
+                    //ViewAnimation.showOut(maddCameraFAB);
                     ViewAnimation.showOut(maddFilesFAB);
                 }
             }
@@ -130,21 +132,25 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
                 StartMergeActivity("FileSearch");
             }
         });
+        /*
         maddCameraFAB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 StartMergeActivity("CameraActivity");
             }
         });
+
+         */
         CheckStoragePermission();
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, R.string.navigation_drawer_open, R.string.navigation_drawer_close
+                this, drawer,toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
         );
         drawer.addDrawerListener(toggle);
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
+
         recyclerView = (RecyclerViewEmptySupport) findViewById(R.id.mainRecycleView);
         recyclerView.setEmptyView(findViewById(R.id.toDoEmptyView));
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -172,10 +178,40 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
             if (doNotDis) {
                 super.onBackPressed();
             } else {
-                //ShowRatingDialog();
-                System.out.println("raj mahto");
+                ShowRatingDialog();
+
             }
         }
+    }
+
+    AlertDialog rattingAlertDialog = null;
+    private void ShowRatingDialog(){
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.rate_dialog,null);
+        dialogBuilder.setView(dialogView);
+        final AppCompatCheckBox donotDis = dialogView.findViewById(R.id.donotdis);
+        Button rateNow = dialogView.findViewById(R.id.bt_rateNow);
+        rateNow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        Button exit = dialogView.findViewById(R.id.bt_exit);
+        exit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (donotDis.isChecked())
+                    mSharedPreferences.edit().putBoolean("doNotDis", true).commit();
+                if (rattingAlertDialog != null) {
+                    rattingAlertDialog.dismiss();
+                }
+                finish();
+            }
+        });
+       rattingAlertDialog = dialogBuilder.create();
+       rattingAlertDialog.show();
     }
 
     @Override
@@ -278,49 +314,47 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
     Comparator<File> comparator  = null;
 
     public boolean  onOptionsItemSelected(MenuItem item) {
-        final int NAME_SORT = 1;
-        final int MODIFIED_SORT = 2;
-        final int SIZE_SORT =3;
-        final int ORDERING = 4;
-        switch (item.getItemId()) {
-            case NAME_SORT:
-                mainMenuItem.setTitle("Name");
-                comparator = FileComparator.getNameComparator();
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.nameSort) {
+            mainMenuItem.setTitle("Name");
+            comparator = FileComparator.getNameComparator();
+            FileComparator.isDescending = isChecked;
+            sortFiles(comparator);
+            return true;
+        } else if (itemId == R.id.modifiedSort) {
+            mainMenuItem.setTitle("Modified");
+            comparator = FileComparator.getLastModifiedComparator();
+            FileComparator.isDescending = isChecked;
+            sortFiles(comparator);
+            return true;
+        } else if (itemId == R.id.sizeSort) {
+            mainMenuItem.setTitle("Size");
+            comparator = FileComparator.getSizeComparator();
+            FileComparator.isDescending = isChecked;
+            sortFiles(comparator);
+            return true;
+        } else if (itemId == R.id.ordering) {
+            isChecked = !isChecked;
+            if (isChecked) {
+                item.setIcon(R.drawable.ic_keyboard_arrow_up_black_24dp);
+            } else {
+                item.setIcon(R.drawable.ic_keyboard_arrow_down_black_24dp);
+            }
+            if (comparator != null) {
                 FileComparator.isDescending = isChecked;
                 sortFiles(comparator);
-                return true;
-            case MODIFIED_SORT:
-                mainMenuItem.setTitle("Modified");
+            } else {
                 comparator = FileComparator.getLastModifiedComparator();
                 FileComparator.isDescending = isChecked;
                 sortFiles(comparator);
-                return true;
-            case SIZE_SORT:
-                mainMenuItem.setTitle("Size");
-                comparator = FileComparator.getSizeComparator();
-                FileComparator.isDescending = isChecked;
-                sortFiles(comparator);
-                return true;
-            case ORDERING:
-                isChecked = !isChecked;
-                if (isChecked) {
-                    item.setIcon(R.drawable.ic_keyboard_arrow_up_black_24dp);
-                } else {
-                    item.setIcon(R.drawable.ic_keyboard_arrow_down_black_24dp);
-                }
-                if (comparator != null) {
-                    FileComparator.isDescending = isChecked;
-                    sortFiles(comparator);
-                } else {
-                    comparator = FileComparator.getLastModifiedComparator();
-                    FileComparator.isDescending = isChecked;
-                    sortFiles(comparator);
-                }
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+            }
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
         }
     }
+
     private  void sortFiles(Comparator<File> comparator) {
          Collections.sort(mAdapter.items, comparator);
          mAdapter.notifyDataSetChanged();
@@ -610,7 +644,7 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
             @Override
             public void onClick(View v) {
                 mBottomSheetDialog.dismiss();
-                showCustomRenameDialog(currentFile);
+                showCustomDeleteDialog(currentFile);
             }
         });
 
@@ -688,10 +722,25 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
         dialog.show();
     }
 
+    public void showCustomDeleteDialog(final File currentFile) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Are you sure want to delete this file?");
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                currentFile.delete();
+                CreateDataSource();
+                mAdapter.notifyItemInserted(items.size() - 1);
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
 
+            }
+        });
 
-
-
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
 
     private void showDialogAbout(){
         final Dialog dialog = new Dialog(this);

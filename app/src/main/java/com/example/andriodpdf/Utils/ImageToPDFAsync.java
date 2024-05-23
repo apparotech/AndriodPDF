@@ -64,7 +64,7 @@ public class ImageToPDFAsync  extends AsyncTask<Void, Integer, Boolean> {
     }
     protected void onPreExecute() {
         super.onPreExecute();
-      //  imageToPDF.showBottomSheet(mdocuments.size());
+       imageToPDF.showBottomSheet(mdocuments.size());
 
     }
     protected Boolean doInBackground(Void... voids) {
@@ -136,7 +136,7 @@ public class ImageToPDFAsync  extends AsyncTask<Void, Integer, Boolean> {
         return true;
     }
     public void onPostExecute(Boolean bool) {
-       // imageToPDF.runPostExecution(bool);
+        imageToPDF.runPostExecution(bool);
     }
     public void onCancelled(Boolean bool) {
         if (this.mListener != null) {
@@ -145,7 +145,7 @@ public class ImageToPDFAsync  extends AsyncTask<Void, Integer, Boolean> {
     }
 
     protected void onProgressUpdate(Integer... values) {
-        //imageToPDF.setProgress(values[0], mdocuments.size());
+        imageToPDF.setProgress(values[0], mdocuments.size());
     }
 
     public static boolean isJpeg(InputStream in) throws IOException {

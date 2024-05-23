@@ -10,20 +10,27 @@
         <menu>
             <item
                 android:id="@+id/nameSort"
-                android:title="Name" />
+                android:title="Name"
+                android:iconTint="?android:attr/textColorPrimary"
+                />
             <item
+                android:iconTint="?android:attr/textColorPrimary"
                 android:id="@+id/modifiedSort"
                 android:title="Modified" />
             <item
+
                 android:id="@+id/sizeSort"
-                android:title="Size" />
+                android:title="Size"
+                android:iconTint="?android:attr/textColorPrimary"
+                />
+
         </menu>
     </item>
     <item
         android:id="@+id/ordering"
         android:icon="@drawable/ic_keyboard_arrow_up_black_24dp"
         android:title="Size"
-        android:iconTint="@android:color/white"
+        android:iconTint="?android:attr/textColorPrimaryInverse"
         app:showAsAction="ifRoom" />
 
 </menu>

@@ -10,6 +10,7 @@ import androidx.appcompat.app.ActionBar;
 
 import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -30,6 +31,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.TypedValue;
@@ -64,11 +66,15 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
 import java.io.File;
+import java.io.IOException;
 import java.security.PublicKey;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class ImageToPDF extends AppCompatActivity {
 
@@ -91,7 +97,7 @@ public class ImageToPDF extends AppCompatActivity {
     private EditText passwordText;
     AppCompatCheckBox securePDF;
 
-  private ActionModeCallback actionModeCallback;
+    private ActionModeCallback actionModeCallback;
     private ActionMode actionMode;
     private  boolean rotate = false;
     FloatingActionButton maddCameraFAB;
@@ -108,12 +114,20 @@ public class ImageToPDF extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_to_pdf);
-        ActionBar ab = getSupportActionBar();
-
-        ab.setDisplayHomeAsUpEnabled(true);
+        Toolbar myToolbar = findViewById(R.id.myToolbar);
+        setSupportActionBar(myToolbar);
+        // Optionally, enable the "Up" button for navigation
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+      //  getSupportActionBar().setDisplayShowHomeEnabled(true); // This might be needed
         initComponent();
         //Initiating fab buttons
         InitFabButtons();
+        myToolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSupportNavigateUp();
+            }
+        });
 
         actionModeCallback = new ActionModeCallback();
 
@@ -140,11 +154,11 @@ public class ImageToPDF extends AppCompatActivity {
     }
 
     private void InitFabButtons() {
-        maddCameraFAB = findViewById(R.id.addCameraFAB);
+       // maddCameraFAB = findViewById(R.id.addCameraFAB);
         mAddPDFFAB = findViewById(R.id.fabadd);
         maddFilesFAB = findViewById(R.id.addFilesFAB);
         mParentFloatButton = findViewById(R.id.parentfloatbutton);
-        ViewAnimation.initShowOut(maddCameraFAB);
+        //ViewAnimation.initShowOut(maddCameraFAB);
         ViewAnimation.initShowOut(maddFilesFAB);
         mCollageIt = findViewById(R.id.collageit);
         mAddPDFFAB.setOnClickListener(new View.OnClickListener() {
@@ -152,10 +166,10 @@ public class ImageToPDF extends AppCompatActivity {
             public void onClick(View v) {
                rotate = ViewAnimation.rotateFab(v,!rotate);
                if (rotate){
-                   ViewAnimation.showIn(maddCameraFAB);
+                  // ViewAnimation.showIn(maddCameraFAB);
                    ViewAnimation.showIn(maddFilesFAB);
                } else {
-                   ViewAnimation.showIn(maddCameraFAB);
+                  // ViewAnimation.showIn(maddCameraFAB);
                    ViewAnimation.showOut(maddFilesFAB);
                }
             }
@@ -166,12 +180,16 @@ public class ImageToPDF extends AppCompatActivity {
                 performFileSearch();
             }
         });
+        /*
         maddCameraFAB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 StartCameraActivity();
             }
         });
+
+         */
+
 
         mCollageIt.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -180,7 +198,7 @@ public class ImageToPDF extends AppCompatActivity {
             }
         });
     }
-    public boolean onSupportNavigation() {
+    public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
     }
@@ -220,8 +238,8 @@ public class ImageToPDF extends AppCompatActivity {
             final AppCompatSpinner spn_timezone = (AppCompatSpinner) alertView.findViewById(R.id.pageorientation);
 
             String[] timezones = new String[]{"Portrait", "Landscape"};
-          ArrayAdapter<String> array = new ArrayAdapter<>(mainActivity, R.layout.simple_spinner_item,timezones);
-          array.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+            ArrayAdapter<String> array = new ArrayAdapter<>(mainActivity, R.layout.simple_spinner_item,timezones);
+            array.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
             spn_timezone.setAdapter(array);
             spn_timezone.setSelection(0);
 
@@ -266,27 +284,49 @@ public class ImageToPDF extends AppCompatActivity {
             ((Button) dialog.findViewById(R.id.bt_save)).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (ContextCompat.checkSelfPermission(mainActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        CheckStoragePermission();
-                    } else {
-                        String fileName = editText.getText().toString();
-
-                        if (!fileName.equals("")) {
-                            ImageToPDFAsync conveter = new ImageToPDFAsync(mainActivity, documents, fileName, null);
-                            if (securePDF.isChecked()){
-                                String password = passwordText.getText().toString();
-                                conveter.setPassword(password);
-                            }
-                            conveter.setPageOrientation(spn_timezone.getSelectedItem().toString());
-                            conveter.setPageMargin(pageMargin.getSelectedItem().toString());
-                            conveter.setPageSize(pageSize.getSelectedItem().toString());
-                            conveter.setCompression(compression.getSelectedItem().toString());
-                            conveter.execute();
-                            dialog.dismiss();
-                        } else {
-                            Snackbar.make(v,"File name should not be empty", Snackbar.LENGTH_LONG).show();
-                        }
-                    }
+                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+                       if (ContextCompat.checkSelfPermission(ImageToPDF.this,Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED){
+                           CheckStoragePermission();
+                       } else {
+                           String fileName = editText.getText().toString();
+                           if (!fileName.equals("")){
+                               ImageToPDFAsync conveter = new ImageToPDFAsync(mainActivity, documents,fileName,null);
+                               if (securePDF.isChecked()){
+                                   String password = passwordText.getText().toString();
+                                   conveter.setPassword(password);
+                               }
+                               conveter.setPageOrientation(spn_timezone.getSelectedItem().toString());
+                               conveter.setPageMargin(pageMargin.getSelectedItem().toString());
+                               conveter.setPageSize(pageSize.getSelectedItem().toString());
+                               conveter.setCompression(compression.getSelectedItem().toString());
+                               conveter.execute();
+                               dialog.dismiss();
+                           } else {
+                               Snackbar.make(v, "File name should not be empty", Snackbar.LENGTH_LONG).show();
+                           }
+                       }
+                   }  else {
+                       if (ContextCompat.checkSelfPermission(mainActivity,Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                           CheckStoragePermission();
+                       } else {
+                           String fileName = editText.getText().toString();
+                           if (!fileName.equals("")) {
+                               ImageToPDFAsync converter = new ImageToPDFAsync(mainActivity,documents, fileName, null);
+                               if (securePDF.isChecked()) {
+                                   String password = passwordText.getText().toString();
+                                   converter.setPassword(password);
+                               }
+                               converter.setPageOrientation(spn_timezone.getSelectedItem().toString());
+                               converter.setPageMargin(pageMargin.getSelectedItem().toString());
+                               converter.setPageSize(pageSize.getSelectedItem().toString());
+                               converter.setCompression(compression.getSelectedItem().toString());
+                               converter.execute();
+                               dialog.dismiss();
+                           } else {
+                               Snackbar.make(v, "File name should not be empty", Snackbar.LENGTH_LONG).show();
+                           }
+                       }
+                   }
                 }
             });
 
@@ -351,6 +391,8 @@ public class ImageToPDF extends AppCompatActivity {
     }
 
     public void StartCameraActivity() {
+
+/*
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 
             CheckStoragePermission();
@@ -368,6 +410,53 @@ public class ImageToPDF extends AppCompatActivity {
                 Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
+        }
+
+ */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+            if (ContextCompat.checkSelfPermission(this,Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES,Manifest.permission.CAMERA}, REQUEST_IMAGE_CAPTURE);
+                CheckStoragePermission();
+            } else {
+                //Toast.makeText(getApplicationContext(),"This is working ",Toast.LENGTH_SHORT).show();
+
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (takePictureIntent.resolveActivity(this.getPackageManager()) != null) {
+                    File root = getCacheDir();
+                    mCurrentCameraFile = root + "/ImageToPDF";
+                    File myDir = new File(mCurrentCameraFile);
+                    myDir = new File(mCurrentCameraFile);
+                    if (!myDir.exists()) {
+                        myDir.mkdirs();
+                    }
+                    mCurrentCameraFile = root + "/ImageToPDF/IMG" + System.currentTimeMillis() + ".jpeg";
+                    Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                   // startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                    takePictureLauncher.launch(takePictureIntent);
+                }
+
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+                CheckStoragePermission();
+            } else {
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (takePictureIntent.resolveActivity(this.getPackageManager()) != null) {
+                    File root = getCacheDir();
+                    mCurrentCameraFile = root + "/ImageToPDF";
+                    File myDir = new File(mCurrentCameraFile);
+                    myDir = new File(mCurrentCameraFile);
+                    if (!myDir.exists()) {
+                        myDir.mkdirs();
+                    }
+                    mCurrentCameraFile = root + "/ImageToPDF/IMG" + System.currentTimeMillis() + ".jpeg";
+                    Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                }
             }
         }
     }
@@ -393,6 +482,8 @@ public class ImageToPDF extends AppCompatActivity {
               File file  = new File(mCurrentCameraFile);
               if (file.exists()){
                   Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
+                  ImageDocument document = new ImageDocument(uri, this); // Create the document
+                  addToDataStore(document);
               }
           }
           if (requestCode == REQUEST_COLLAGE && resultCode == Activity.RESULT_OK){
@@ -487,7 +578,7 @@ public class ImageToPDF extends AppCompatActivity {
         bottomSheetDialog.getWindow().setAttributes(lp);
     }
 
-    private void  showBottomSheet(int size){
+    public void  showBottomSheet(int size){
         bottomSheetDialog.show();
         this.progressBar.setProgressMax(size);
         this.progressBar.setProgress(0);
@@ -565,6 +656,29 @@ public class ImageToPDF extends AppCompatActivity {
             } else {
                 // Permission denied
                 Toast.makeText(this, "Storage permission is required to save the PDF.", Toast.LENGTH_LONG).show();
+            }
+        }else {
+            if (requestCode == REQUEST_IMAGE_CAPTURE) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                   // launchCamera(); // Permission granted, start the camera
+                    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    if (takePictureIntent.resolveActivity(this.getPackageManager()) != null) {
+                        File root = getCacheDir();
+                        mCurrentCameraFile = root + "/ImageToPDF";
+                        File myDir = new File(mCurrentCameraFile);
+                        if (!myDir.exists()) {
+                            myDir.mkdirs();
+                        }
+                        mCurrentCameraFile = root + "/ImageToPDF/IMG" + System.currentTimeMillis() + ".jpeg";
+                        Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                        //startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                        takePictureLauncher.launch(takePictureIntent);
+                    }
+                } else {
+                    // Permission denied, handle appropriately (e.g., show a message)
+                    Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
@@ -646,13 +760,6 @@ public class ImageToPDF extends AppCompatActivity {
     private boolean isChecked = false;
 
     //>>>>>>>>>>>>MENU
-    public boolean onCreateOptionsMenu(Menu menu){
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.sortmenu,menu);
-        mainMenuItem = menu.findItem(R.id.fileSort);
-        return true;
-    }
-      Comparator<ImageDocument> comparator = null;
 
 
 
@@ -711,11 +818,36 @@ public class ImageToPDF extends AppCompatActivity {
         File file = new File(mCurrentCameraFile);
         if (file.exists()) {
             Uri uri  = FileProvider.getUriForFile(this,getPackageName() + ".provider", file);
+            ImageDocument document = new ImageDocument(uri, this); // Create the document
+            addToDataStore(document);
             // Do something with the captured image URI
         }
     }
 
 
+   private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+       File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+       File imageFile = File.createTempFile(
+               imageFileName,
+               ".jpg",
+               storageDir
+       );
 
+       mCurrentCameraFile = imageFile.getAbsolutePath(); // Store the file path
+       return imageFile;
+   }
+    private ActivityResultLauncher<Intent>takePictureLauncher  = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result ->{
+        if (result.getResultCode() == Activity.RESULT_OK) {
+            File file  = new File(mCurrentCameraFile);
+            if (file.exists()) {
+                Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", new File(mCurrentCameraFile));
+                ImageDocument document = new ImageDocument(uri, this); // Create the document
+                addToDataStore(document);
+            }
+        }
+            });
 
 }

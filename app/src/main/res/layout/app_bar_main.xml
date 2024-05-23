@@ -15,11 +15,13 @@
             android:layout_height="wrap_content"
             android:theme="@style/AppTheme.AppBarOverlay"
             >
+
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:background="?attr/colorPrimary" />
+
 
 
         </com.google.android.material.appbar.AppBarLayout>
@@ -44,6 +46,7 @@
                 app:fabSize="mini"
                 android:contentDescription="file"/>
 
+            <!--
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/mainaddCameraFAB"
                 android:layout_width="wrap_content"
@@ -54,7 +57,7 @@
                 app:fabSize="mini"
                 android:contentDescription="camrea"
                 />
-
+          -->
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fab"
                 android:layout_width="wrap_content"

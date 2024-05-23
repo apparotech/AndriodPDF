@@ -8,7 +8,19 @@
     android:background="@android:color/darker_gray"
     android:id="@+id/docviewer">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/myToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:title="@string/app_name"
+        app:titleTextColor="@android:color/white"
+        app:contentInsetLeft="0dp"
+        app:contentInsetRight="0dp"
+        app:contentInsetStart="0dp"/>
+
     <LinearLayout
+        android:layout_marginTop="55dp"
         android:id="@+id/listParentView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

@@ -3,6 +3,7 @@ package com.example.andriodpdf;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.Manifest;
@@ -71,8 +72,9 @@ public class PDFCreater extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdfcreater);
-        ActionBar ab = getSupportActionBar();
-        ab.setDisplayHomeAsUpEnabled(true);
+          Toolbar myToolbar = findViewById(R.id.myToolbar);
+          setSupportActionBar(myToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         mListParentView = findViewById(R.id.listParentView);
         collageTool = findViewById(R.id.collageOption);
 
@@ -91,6 +93,7 @@ public class PDFCreater extends AppCompatActivity {
         onBackPressed();
         return true;
     }
+
 
    public boolean onOptionsItemSelected(MenuItem item) {
            int id = item.getItemId();
@@ -146,48 +149,15 @@ public class PDFCreater extends AppCompatActivity {
                      }
                    }
                });
-             
+                return true;
+
            } else {
                return super.onOptionsItemSelected(item);
            }
-        return true;
+
 
     }
 
-
-    /*
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.savepdf_menu:
-                final Dialog dialog = new Dialog(this);
-                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-                final View alertView = getLayoutInflater().inflate(R.layout.collagesave, null);
-                dialog.setContentView(alertView);
-                dialog.setCancelable(true);
-                WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-                lp.copyFrom(dialog.getWindow().getAttributes());
-                lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-                lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
-                dialog.show();
-                dialog.getWindow().setAttributes(lp);
-                final EditText edittext = (EditText) alertView.findViewById(R.id.editText2);
-
-                ((ImageButton) dialog.findViewById(R.id.bt_close)).setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialog.dismiss();
-                    }
-                });
-                ((Button) dialog.findViewById(R.id.bt_save)).setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (Bu)
-                    }
-                });
-        }
-    }
-
-     */
     public LinearLayout GetPdfParentView(){
         return mListParentView;
     }
@@ -414,35 +384,5 @@ public class PDFCreater extends AppCompatActivity {
             }
         }
     }
-    //EditText edittext = (EditText) findViewById(R.id.editText2);
-
-   /* private void savePDF(EditText edittext){
-        try{
-            String fileName = edittext.getText().toString();
-
-            File  documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
-            File pdfFile = new File(documentsDir, fileName + ".pdf");
-
-            PdfWriter writer = new PdfWriter(pdfFile);
-            PdfDocument pdfDocument = new PdfDocument(writer);
-            Document document1 = new Document(pdfDocument);
-
-            document1.add(new Paragraph("this is sample PDF document."));
-
-            List<Uri> imageUris = new ArrayList<>();
-             for (Uri imageUri : imageUris){
-
-                 // Scale the image to fit the page width
-
-             }
-
-
-
-
-        }
-    }
-    /
-    */
-
 
 }
