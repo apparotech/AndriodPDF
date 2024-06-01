@@ -1,4 +1,5 @@
 package com.example.andriodpdf;
+import android.graphics.Color;
 import android.provider.MediaStore;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -34,6 +35,8 @@ import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.Manifest;
 import android.provider.Settings;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -238,7 +241,7 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
         } else if (id==R.id.nav_send) {
             Intent Email = new Intent(Intent.ACTION_SEND);
             Email.setType("text/email");
-            Email.putExtra(Intent.EXTRA_EMAIL, new String[]{"7061rajaryan@gmail.com"});
+            Email.putExtra(Intent.EXTRA_EMAIL, new String[]{"apparotech@gmail.com"});
             Email.putExtra(Intent.EXTRA_SUBJECT,"Feedback");
             startActivity(Intent.createChooser(Email,"Send Feedback"));
         } else if (id==R.id.nav_about) {
@@ -306,6 +309,9 @@ public class MainActivity extends AppCompatActivity  implements NavigationView.O
     public  boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.sortmenu, menu);
         mainMenuItem = menu.findItem(R.id.fileSort);
+        SpannableString s = new SpannableString(mainMenuItem.getTitle());
+        s.setSpan(new ForegroundColorSpan(Color.BLUE), 0, s.length(),0);
+        mainMenuItem.setTitle(s);
         return  true;
 
     }

@@ -12,6 +12,7 @@
                 android:id="@+id/nameSort"
                 android:title="Name"
                 android:iconTint="?android:attr/textColorPrimary"
+
                 />
             <item
                 android:iconTint="?android:attr/textColorPrimary"

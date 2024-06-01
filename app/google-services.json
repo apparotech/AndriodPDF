@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "228459083472",
+    "project_id": "pdfconveter-40564",
+    "storage_bucket": "pdfconveter-40564.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228459083472:android:6d4291884956b0536710d5",
+        "android_client_info": {
+          "package_name": "com.example.andriodpdf"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvPU4QRyLSmdGkYvRJl86Bv09aHpJdQ5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
